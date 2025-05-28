@@ -1,0 +1,1 @@
+# Chat-Base-Seach-Assistant-Plugin
