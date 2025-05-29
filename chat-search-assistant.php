@@ -7,9 +7,11 @@
  */
 
 defined('ABSPATH') || exit;
+define('CSA_PLUGIN_PATH', plugin_dir_path(__FILE__));
 
 require_once plugin_dir_path(__FILE__) . 'includes/class-csa-api.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-csa-settings.php';
+
 
 function csa_render_chat_box() {
     ob_start();
@@ -41,6 +43,7 @@ function csa_handle_query(WP_REST_Request $request) {
     $prompt = sanitize_text_field($data['prompt'] ?? '');
 
     if (empty($prompt)) {
+        error_log('CSA Debug: Prompt is empty.');
         return new WP_REST_Response(['error' => 'Prompt is empty.'], 400);
     }
 
@@ -48,8 +51,17 @@ function csa_handle_query(WP_REST_Request $request) {
     $csa_api = new CSA_API_Handler();
     $response = $csa_api->get_openai_response($prompt);
 
+    error_log('CSA Debug: API response: ' . print_r($response, true));
+
     if (empty($response)) {
+        error_log('CSA Debug: No response from API.');
         return new WP_REST_Response(['error' => 'No response from API.'], 500);
+    }
+
+    // Check for error messages and return as error
+    if (stripos($response, 'error:') === 0 || stripos($response, 'OpenAI error:') === 0) {
+        error_log('CSA Debug: API error: ' . $response);
+        return new WP_REST_Response(['error' => $response], 500);
     }
 
     return new WP_REST_Response(['response' => $response]);
@@ -60,8 +72,15 @@ add_action('rest_api_init', function () {
   register_rest_route('chat-search/v1', '/query', [
     'methods'  => 'POST',
     'callback' => 'csa_handle_query',
-    'permission_callback' => function () {
-      return current_user_can('read'); // or just return true for testing
-    },
+    'permission_callback' => '__return_true', // Allow public access
   ]);
+});
+
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+
+    $template_path = CSA_PLUGIN_PATH . 'templates/chat-box.php';
+    if (file_exists($template_path)) {
+        include $template_path;
+    }
 });

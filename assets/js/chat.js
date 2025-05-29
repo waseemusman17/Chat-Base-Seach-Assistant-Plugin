@@ -19,17 +19,22 @@ jQuery(document).ready(function ($) {
     $.ajax({
       method: "POST",
       url: CSA.ajax_url,
-      beforeSend: function (xhr) {
-        xhr.setRequestHeader("X-WP-Nonce", CSA.nonce);
-      },
-      data: { prompt },
+      // beforeSend: function (xhr) {
+      //   xhr.setRequestHeader("X-WP-Nonce", CSA.nonce);
+      // },
+      contentType: "application/json",
+      data: JSON.stringify({ prompt }),
       success: function (res) {
-        if (res && res.response) {
-          $(".chat-log").append(`<div class=\"bot-msg\">${res.response}</div>`);
-        } else if (res && res.error) {
-          $(".chat-log").append(`<div class=\"bot-msg\">Error: ${res.error}</div>`);
+        if (res && res.error) {
+          $(".chat-log").append(
+            `<div class="bot-msg error">${res.error}</div>`
+          );
+        } else if (res && res.response) {
+          $(".chat-log").append(`<div class="bot-msg">${res.response}</div>`);
         } else {
-          $(".chat-log").append(`<div class=\"bot-msg\">No response received.</div>`);
+          $(".chat-log").append(
+            `<div class="bot-msg">No response received.</div>`
+          );
         }
       },
       error: function (xhr) {
